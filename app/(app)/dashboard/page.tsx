@@ -16,6 +16,7 @@ import {
   expensesByCategory,
   dailyExpenseSeries,
   monthlySeries,
+  runningBalanceByMonth,
   todayStr,
   toDateStr,
   startOfMonth,
@@ -103,6 +104,11 @@ export default function DashboardPage() {
     monthTotals.income
   );
 
+  const balanceSeries = useMemo(() => runningBalanceByMonth(txns), [txns]);
+  const currentBalance = balanceSeries.length
+    ? balanceSeries[balanceSeries.length - 1].balance
+    : 0;
+
   if (loading || !loaded) {
     return (
       <p className="py-10 text-center text-slate-400">Loading your budget…</p>
@@ -149,6 +155,82 @@ export default function DashboardPage() {
           tone={monthTotals.savingsRate >= 0 ? "positive" : "negative"}
         />
       </section>
+
+      {/* Balance over time — running balance across months */}
+      <Card className="mt-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-medium">Balance Over Time</h2>
+          <span className="text-sm text-slate-400">
+            Current running balance:{" "}
+            <span
+              className={
+                currentBalance >= 0 ? "text-emerald-300" : "text-rose-300"
+              }
+            >
+              {peso(currentBalance)}
+            </span>
+          </span>
+        </div>
+        {balanceSeries.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            No transactions yet. Add income and expenses to see your balance
+            grow over time.
+          </p>
+        ) : (
+          <>
+            <BarChart
+              data={balanceSeries.map((m) => ({
+                label: m.label,
+                value: m.balance,
+              }))}
+              color="#34d399"
+              height={180}
+            />
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-400">
+                    <th className="py-2 pr-4 font-normal">Month</th>
+                    <th className="py-2 pr-4 text-right font-normal">Income</th>
+                    <th className="py-2 pr-4 text-right font-normal">
+                      Expenses
+                    </th>
+                    <th className="py-2 pr-4 text-right font-normal">Net</th>
+                    <th className="py-2 text-right font-normal">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...balanceSeries].reverse().map((m) => (
+                    <tr key={m.label} className="border-t border-white/5">
+                      <td className="py-2 pr-4">{m.label}</td>
+                      <td className="py-2 pr-4 text-right text-emerald-300">
+                        {peso(m.income)}
+                      </td>
+                      <td className="py-2 pr-4 text-right text-rose-300">
+                        {peso(m.expenses)}
+                      </td>
+                      <td
+                        className={`py-2 pr-4 text-right ${
+                          m.net >= 0 ? "text-emerald-300" : "text-rose-300"
+                        }`}
+                      >
+                        {peso(m.net)}
+                      </td>
+                      <td
+                        className={`py-2 text-right font-medium ${
+                          m.balance >= 0 ? "text-slate-100" : "text-rose-300"
+                        }`}
+                      >
+                        {peso(m.balance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Card>
 
       {/* Allocation overview — income vs limits + goals */}
       <div className="mt-6">

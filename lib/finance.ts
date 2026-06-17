@@ -166,6 +166,51 @@ export function computeAllocation(
   };
 }
 
+// Running (cumulative) balance month by month, from the first transaction
+// month through the current month. balance = sum of all net up to that month.
+export function runningBalanceByMonth(
+  txns: Transaction[]
+): { label: string; income: number; expenses: number; net: number; balance: number }[] {
+  if (txns.length === 0) return [];
+  const sorted = [...txns].sort((a, b) =>
+    a.txn_date.localeCompare(b.txn_date)
+  );
+  const first = new Date(`${sorted[0].txn_date}T00:00:00`);
+  const now = new Date();
+  const out: {
+    label: string;
+    income: number;
+    expenses: number;
+    net: number;
+    balance: number;
+  }[] = [];
+  let balance = 0;
+  let d = new Date(first.getFullYear(), first.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (d <= end) {
+    const start = toDateStr(d);
+    const monthEnd = toDateStr(
+      new Date(d.getFullYear(), d.getMonth() + 1, 0)
+    );
+    const income = sumByType(txns, "income", start, monthEnd);
+    const expenses = sumByType(txns, "expense", start, monthEnd);
+    const net = income - expenses;
+    balance += net;
+    out.push({
+      label: d.toLocaleDateString("en-PH", {
+        month: "short",
+        year: "2-digit",
+      }),
+      income,
+      expenses,
+      net,
+      balance,
+    });
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  }
+  return out;
+}
+
 // Monthly series for the last `months` months (oldest first).
 export function monthlySeries(
   txns: Transaction[],

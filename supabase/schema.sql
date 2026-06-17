@@ -11,6 +11,7 @@ drop table if exists public.transactions cascade;
 drop table if exists public.savings_goals cascade;
 drop table if exists public.category_budgets cascade;
 drop table if exists public.budget_settings cascade;
+drop table if exists public.budget_periods cascade;
 
 -- ---------------------------------------------------------------------------
 -- Transactions: every income and expense entry lives here.
@@ -71,12 +72,31 @@ create table public.savings_goals (
 );
 
 -- ---------------------------------------------------------------------------
+-- Budget cycles: a weekly / bi-weekly budget; old ones become history.
+-- ---------------------------------------------------------------------------
+create table public.budget_periods (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  period_type text not null default 'biweekly'
+    check (period_type in ('weekly', 'biweekly')),
+  amount numeric not null default 0,
+  start_date date not null,
+  end_date date not null,
+  status text not null default 'active'
+    check (status in ('active', 'archived')),
+  created_at timestamptz not null default now()
+);
+create index budget_periods_user_idx
+  on public.budget_periods (user_id, start_date desc);
+
+-- ---------------------------------------------------------------------------
 -- Row level security: every user only ever sees their own rows.
 -- ---------------------------------------------------------------------------
 alter table public.transactions enable row level security;
 alter table public.budget_settings enable row level security;
 alter table public.category_budgets enable row level security;
 alter table public.savings_goals enable row level security;
+alter table public.budget_periods enable row level security;
 
 create policy "own transactions" on public.transactions
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -85,4 +105,6 @@ create policy "own budget_settings" on public.budget_settings
 create policy "own category_budgets" on public.category_budgets
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own savings_goals" on public.savings_goals
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own budget_periods" on public.budget_periods
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

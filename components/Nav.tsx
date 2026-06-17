@@ -8,8 +8,10 @@ const LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/transactions", label: "Transactions", icon: "💸" },
   { href: "/budgets", label: "Budgets", icon: "🎯" },
+  { href: "/cycles", label: "Budget Cycles", icon: "🔄" },
   { href: "/goals", label: "Goals", icon: "🏆" },
   { href: "/reports", label: "Reports", icon: "📈" },
+  { href: "/help", label: "Help & Guide", icon: "❓" },
 ];
 
 export default function Nav({ email }: { email: string | null }) {

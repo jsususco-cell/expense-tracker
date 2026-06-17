@@ -62,3 +62,16 @@ export type SavingsGoal = {
   target_date: string | null;
   created_at: string;
 };
+
+export type PeriodType = "weekly" | "biweekly";
+
+export type BudgetPeriod = {
+  id: string;
+  user_id: string;
+  period_type: PeriodType;
+  amount: number;
+  start_date: string;
+  end_date: string;
+  status: "active" | "archived";
+  created_at: string;
+};
