@@ -6,6 +6,7 @@ import {
   type Transaction,
   type BudgetSettings,
   type CategoryBudget,
+  type SavingsGoal,
 } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
@@ -16,6 +17,8 @@ import {
   toDateStr,
   startOfWeek,
   startOfMonth,
+  computeAllocation,
+  goalMonthlyContribution,
 } from "@/lib/finance";
 import {
   Card,
@@ -24,6 +27,7 @@ import {
   ProgressBar,
   inputClass,
 } from "@/components/ui";
+import AllocationCard from "@/components/AllocationCard";
 
 const BLANK: Omit<BudgetSettings, "user_id" | "updated_at"> = {
   daily_limit: 0,
@@ -31,6 +35,7 @@ const BLANK: Omit<BudgetSettings, "user_id" | "updated_at"> = {
   monthly_limit: 0,
   weekly_savings_target: 0,
   monthly_savings_target: 0,
+  expected_monthly_income: 0,
 };
 
 export default function BudgetsPage() {
@@ -38,6 +43,7 @@ export default function BudgetsPage() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState(BLANK);
   const [catBudgets, setCatBudgets] = useState<CategoryBudget[]>([]);
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [savedMsg, setSavedMsg] = useState(false);
 
   // new category budget form
@@ -67,6 +73,12 @@ export default function BudgetsPage() {
         .select("*")
         .order("created_at");
       setCatBudgets((cb as CategoryBudget[]) ?? []);
+
+      const { data: g } = await supabase
+        .from("savings_goals")
+        .select("*")
+        .order("created_at");
+      setGoals((g as SavingsGoal[]) ?? []);
     })();
   }, [userId]);
 
@@ -100,6 +112,18 @@ export default function BudgetsPage() {
     }
     return map;
   }, [txns, monthStart, today]);
+
+  const monthIncome = sumByType(txns, "income", monthStart, today);
+  const allocation = computeAllocation(
+    settings.expected_monthly_income,
+    settings.monthly_limit,
+    goals,
+    monthIncome
+  );
+  const goalLines = goals.map((g) => ({
+    name: g.name,
+    amount: goalMonthlyContribution(g),
+  }));
 
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault();
@@ -197,6 +221,11 @@ export default function BudgetsPage() {
         </Card>
       </div>
 
+      {/* Allocation overview — connects limits + goals to income */}
+      <div className="mt-6">
+        <AllocationCard allocation={allocation} goalLines={goalLines} />
+      </div>
+
       {/* Set limits */}
       <Card className="mt-6">
         <h2 className="mb-4 font-medium">Set budget limits &amp; savings targets</h2>
@@ -204,6 +233,21 @@ export default function BudgetsPage() {
           onSubmit={saveSettings}
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
         >
+          <Field label="Expected monthly income (₱)">
+            <input
+              type="number"
+              min="0"
+              value={settings.expected_monthly_income || ""}
+              onChange={(e) =>
+                setSettings((s) => ({
+                  ...s,
+                  expected_monthly_income: num(e.target.value),
+                }))
+              }
+              className={inputClass}
+              placeholder="blank = use actual"
+            />
+          </Field>
           <Field label="Daily limit (₱)">
             <input
               type="number"

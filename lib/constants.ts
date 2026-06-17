@@ -32,8 +32,15 @@ export const RECURRENCE_OPTIONS = [
   { value: "none", label: "One-time" },
   { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
+  { value: "biweekly", label: "Bi-weekly" },
   { value: "monthly", label: "Monthly" },
 ] as const;
+
+export function recurrenceLabel(value: string): string {
+  return (
+    RECURRENCE_OPTIONS.find((r) => r.value === value)?.label ?? value
+  );
+}
 
 // Colors used for category charts (cycled).
 export const CATEGORY_COLORS = [

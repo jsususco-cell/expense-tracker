@@ -26,7 +26,7 @@ create table public.transactions (
   notes text,
   txn_date date not null default current_date,
   recurrence text not null default 'none'
-    check (recurrence in ('none', 'daily', 'weekly', 'monthly')),
+    check (recurrence in ('none', 'daily', 'weekly', 'biweekly', 'monthly')),
   created_at timestamptz not null default now()
 );
 create index transactions_user_date_idx on public.transactions (user_id, txn_date desc);
@@ -41,6 +41,7 @@ create table public.budget_settings (
   monthly_limit numeric not null default 0,
   weekly_savings_target numeric not null default 0,
   monthly_savings_target numeric not null default 0,
+  expected_monthly_income numeric not null default 0,
   updated_at timestamptz not null default now()
 );
 

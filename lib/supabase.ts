@@ -13,7 +13,12 @@ if (!url || !anonKey) {
 export const supabase = createClient(url, anonKey);
 
 export type TxnType = "income" | "expense";
-export type Recurrence = "none" | "daily" | "weekly" | "monthly";
+export type Recurrence =
+  | "none"
+  | "daily"
+  | "weekly"
+  | "biweekly"
+  | "monthly";
 
 export type Transaction = {
   id: string;
@@ -36,6 +41,7 @@ export type BudgetSettings = {
   monthly_limit: number;
   weekly_savings_target: number;
   monthly_savings_target: number;
+  expected_monthly_income: number;
   updated_at: string;
 };
 

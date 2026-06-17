@@ -1,4 +1,4 @@
-import type { Transaction } from "./supabase";
+import type { Transaction, SavingsGoal } from "./supabase";
 
 // ---- Date helpers (all local-time, return YYYY-MM-DD strings) ----
 
@@ -106,6 +106,64 @@ export function dailyExpenseSeries(
     });
   }
   return out;
+}
+
+// Whole months from now until a target date (minimum 1).
+export function monthsUntil(dateStr: string): number {
+  const target = new Date(`${dateStr}T00:00:00`);
+  const now = new Date();
+  const months =
+    (target.getFullYear() - now.getFullYear()) * 12 +
+    (target.getMonth() - now.getMonth());
+  return Math.max(1, months);
+}
+
+// Suggested monthly contribution to reach a goal by its target date.
+// Goals with no target date (or already met) contribute 0.
+export function goalMonthlyContribution(goal: SavingsGoal): number {
+  if (!goal.target_date) return 0;
+  const remaining =
+    Number(goal.target_amount) - Number(goal.current_amount);
+  if (remaining <= 0) return 0;
+  return remaining / monthsUntil(goal.target_date);
+}
+
+export type Allocation = {
+  income: number; // expected monthly income
+  limit: number; // monthly spending limit
+  goalContrib: number; // total suggested monthly goal contributions
+  leftover: number; // income - limit - goalContrib
+  allocated: number; // limit + goalContrib
+  overBy: number; // amount over income (0 if within)
+  overAllocated: boolean;
+  usedActualIncome: boolean; // true when we fell back to actual income
+};
+
+// Connects spending limits + savings goals to expected income.
+export function computeAllocation(
+  expectedIncome: number,
+  monthlyLimit: number,
+  goals: SavingsGoal[],
+  actualMonthIncome: number
+): Allocation {
+  const usedActualIncome = !expectedIncome || expectedIncome <= 0;
+  const income = usedActualIncome ? actualMonthIncome : expectedIncome;
+  const goalContrib = goals.reduce(
+    (s, g) => s + goalMonthlyContribution(g),
+    0
+  );
+  const allocated = monthlyLimit + goalContrib;
+  const leftover = income - allocated;
+  return {
+    income,
+    limit: monthlyLimit,
+    goalContrib,
+    leftover,
+    allocated,
+    overBy: leftover < 0 ? -leftover : 0,
+    overAllocated: leftover < 0,
+    usedActualIncome,
+  };
 }
 
 // Monthly series for the last `months` months (oldest first).

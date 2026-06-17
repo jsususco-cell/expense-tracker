@@ -19,7 +19,9 @@ import {
   todayStr,
   toDateStr,
   startOfMonth,
+  computeAllocation,
 } from "@/lib/finance";
+import AllocationCard from "@/components/AllocationCard";
 import {
   Card,
   StatCard,
@@ -94,6 +96,13 @@ export default function DashboardPage() {
     ? settings.monthly_limit - monthTotals.expenses
     : 0;
 
+  const allocation = computeAllocation(
+    settings?.expected_monthly_income ?? 0,
+    settings?.monthly_limit ?? 0,
+    goals,
+    monthTotals.income
+  );
+
   if (loading || !loaded) {
     return (
       <p className="py-10 text-center text-slate-400">Loading your budget…</p>
@@ -140,6 +149,11 @@ export default function DashboardPage() {
           tone={monthTotals.savingsRate >= 0 ? "positive" : "negative"}
         />
       </section>
+
+      {/* Allocation overview — income vs limits + goals */}
+      <div className="mt-6">
+        <AllocationCard allocation={allocation} compact />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Budget overview */}

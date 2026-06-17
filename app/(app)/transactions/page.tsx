@@ -8,6 +8,7 @@ import {
   INCOME_SOURCES,
   PAYMENT_METHODS,
   RECURRENCE_OPTIONS,
+  recurrenceLabel,
 } from "@/lib/constants";
 import { peso, shortDate } from "@/lib/format";
 import { todayStr } from "@/lib/finance";
@@ -255,7 +256,9 @@ export default function TransactionsPage() {
                   <p className="text-xs text-slate-400">
                     {t.category} · {shortDate(t.txn_date)}
                     {t.payment_method ? ` · ${t.payment_method}` : ""}
-                    {t.recurrence !== "none" ? ` · ↻ ${t.recurrence}` : ""}
+                    {t.recurrence !== "none"
+                      ? ` · ↻ ${recurrenceLabel(t.recurrence)}`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
