@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import { peso, shortDate } from "@/lib/format";
 import { todayStr } from "@/lib/finance";
+import { parseReceiptText } from "@/lib/receipt";
 import { Card, Field, PageHeader, inputClass } from "@/components/ui";
 
 type FormState = {
@@ -45,6 +46,11 @@ export default function TransactionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // receipt scanning
+  const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
 
   // filters
   const [q, setQ] = useState("");
@@ -86,6 +92,7 @@ export default function TransactionsPage() {
   function openAdd(type: TxnType) {
     setForm(emptyForm(type));
     setEditingId(null);
+    setScanMsg(null);
     setShowForm(true);
   }
 
@@ -101,6 +108,7 @@ export default function TransactionsPage() {
       recurrence: t.recurrence,
     });
     setEditingId(t.id);
+    setScanMsg(null);
     setShowForm(true);
   }
 
@@ -145,6 +153,42 @@ export default function TransactionsPage() {
     setSaving(false);
     setShowForm(false);
     setEditingId(null);
+  }
+
+  async function handleReceipt(file: File) {
+    setScanning(true);
+    setScanProgress(0);
+    setScanMsg("Reading receipt… this runs on your device.");
+    try {
+      const Tesseract = (await import("tesseract.js")).default;
+      const { data } = await Tesseract.recognize(file, "eng", {
+        logger: (m: { status: string; progress: number }) => {
+          if (m.status === "recognizing text") {
+            setScanProgress(Math.round(m.progress * 100));
+          }
+        },
+      });
+      const parsed = parseReceiptText(data.text);
+      setForm((f) => ({
+        ...f,
+        type: "expense",
+        amount: parsed.amount != null ? String(parsed.amount) : f.amount,
+        description: parsed.merchant ?? f.description,
+        txn_date: parsed.date ?? f.txn_date,
+      }));
+      setScanMsg(
+        parsed.amount != null
+          ? `Detected ${peso(parsed.amount)}${
+              parsed.date ? ` on ${parsed.date}` : ""
+            }. Review the fields below and save.`
+          : "Couldn't detect a total — please type the amount manually."
+      );
+    } catch {
+      setScanMsg("Scan failed. Please enter the details manually.");
+    } finally {
+      setScanning(false);
+      setScanProgress(0);
+    }
   }
 
   async function remove(id: string) {
@@ -305,6 +349,39 @@ export default function TransactionsPage() {
               {editingId ? "Edit" : "Add"}{" "}
               {form.type === "income" ? "income" : "expense"}
             </h2>
+            {/* Receipt scan (on-device OCR, image is not stored) */}
+            <div className="mb-4 rounded-lg border border-dashed border-white/15 bg-black/10 p-3">
+              <label
+                className={`flex items-center justify-center gap-2 text-sm ${
+                  scanning
+                    ? "text-slate-500"
+                    : "cursor-pointer text-slate-200 hover:text-indigo-300"
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  disabled={scanning}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleReceipt(f);
+                    e.target.value = "";
+                  }}
+                />
+                📷{" "}
+                {scanning
+                  ? `Scanning… ${scanProgress}%`
+                  : "Scan or upload a receipt"}
+              </label>
+              {scanMsg && (
+                <p className="mt-2 text-center text-xs text-slate-400">
+                  {scanMsg}
+                </p>
+              )}
+            </div>
+
             <form onSubmit={save} className="grid grid-cols-2 gap-3">
               <Field label="Type">
                 <select

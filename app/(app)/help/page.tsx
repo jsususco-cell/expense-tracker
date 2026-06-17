@@ -6,7 +6,7 @@ import { Card, PageHeader } from "@/components/ui";
 const STEPS = [
   {
     title: "1. Add your income & expenses",
-    body: "Go to Transactions. Use + Income or + Expense to record money in and out. Pick a category, payment method, date, and (optionally) a recurrence like Bi-weekly or Monthly for things that repeat such as salary or rent.",
+    body: "Go to Transactions. Use + Income or + Expense to record money in and out. Pick a category, payment method, date, and (optionally) a recurrence like Bi-weekly or Monthly for things that repeat such as salary or rent. For expenses you can tap 'Scan or upload a receipt' to read the amount and date from a photo automatically.",
   },
   {
     title: "2. Set your budgets",
@@ -50,6 +50,10 @@ const FAQS = [
   {
     q: "Is my data private?",
     a: "Yes. Every record is tied to your account and protected by row-level security, so only you can see or change your data.",
+  },
+  {
+    q: "How does receipt scanning work?",
+    a: "In the Add Expense form, tap 'Scan or upload a receipt' and choose a photo (or take one on mobile). The text is read on your device — the image is never uploaded or stored — and the detected total, date, and store name fill the form for you to review before saving.",
   },
   {
     q: "How do recurring transactions work?",
